@@ -29,7 +29,7 @@ fi
 
 usage () {
     cat <<EOF
-A wrapper around i3lock that sets a blurred screenshot 
+A wrapper around i3lock that sets a blurred screenshot
 as a background image for the screen saver.
 
 Usage: $script_name [options]
@@ -38,7 +38,7 @@ Usage: $script_name [options]
     -n, --nofork                don't fork i3lock after start.
     -b, --beep                  enable beeping.
     -d, --dpms                  enable turning off the screen with DPMS.
-    -I, --inactivity-timeout    specifies  the  number of seconds i3lock will 
+    -I, --inactivity-timeout    specifies  the  number of seconds i3lock will
                                 wait for another password before turning
                                 off the monitors.
     -u, --no-unlock-indicator   disable the unlock indicator.
@@ -62,15 +62,15 @@ arg_test () {
                i3lock -v
                exit
                ;;
-           -n|--nofork)                
+           -n|--nofork)
                shift;;
-           -b|--beep)              
+           -b|--beep)
                shift;;
-           -d|--dpms)                  
+           -d|--dpms)
                shift;;
            -I|--inactivity-timeout)
                shift;;
-           -u|--no-unlock-indicator)   
+           -u|--no-unlock-indicator)
                shift;;
            -p|--pointer) 
                shift
