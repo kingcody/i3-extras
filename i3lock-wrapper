@@ -18,8 +18,8 @@ set -e
 
 script_name=$(basename $0)
 params=$(getopt \
-         -o vnbdIup:elh \
-         -l version,nofork,beep,dpms,inactivity-timeout,no-unlock-indicator,pointer:,ignore-empty-password,logo,help \
+         -o vnbdIup:els:z:h \
+         -l version,nofork,beep,dpms,inactivity-timeout,no-unlock-indicator,pointer:,ignore-empty-password,logo,screens:,size:,help \
          -n "$script_name" -- "$@")
 eval set -- "$params"
 # exit on bad argyments
@@ -47,10 +47,15 @@ Usage: $script_name [options]
                                 or the current position of the mouse pointer.
     -e, --ignore-empty-password when an empty password is provided by the user,
                                 do  not  validate  it.
-    -l, --logo                  superimpose the padlock logo
 
-    Please note, that all the options except "-l" or "--logo" are being passed 
+    Please note, that all the options except those listed below are being passed
     directly to i3lock.  See "man i3lock" for more details.
+
+    -l, --logo                  superimpose the padlock logo
+    -s NUM, --screens=NUM       the number(NUM) of screen to split by (useful with --logo)
+    -z NUM, --size=NUM          the size(NUM percentage) of the padlock
+                                relative to screen hight
+
 EOF
 }
 
@@ -88,6 +93,28 @@ arg_test () {
            -l|--logo)
                use_logo=1
                shift;;
+           -s|--screens)
+               __option__="$1"
+               shift
+               if [ "$1" -ge "1" ]; then
+                   screens="$1"
+                   shift
+               else
+                   echo "$script_name: invalid option \"$1\" for argument $__option__" >&2
+                   exit 1
+               fi
+               ;;
+           -z|--size)
+               __option__="$1"
+               shift
+               if [ "$1" -ge "0" ] &>/dev/null && [ "$1" -le "100" ] &>/dev/null; then
+                   scale=$(echo "$1 * .01" | bc)
+                   shift
+               else
+                   echo "$script_name: invalid option \"$1\" for argument $__option__ (must be >= 0 && <= 100)" >&2
+                   exit 1
+               fi
+               ;;
            -h|--help)
                usage
                exit
@@ -150,14 +177,15 @@ superimpose_padlock() {
 }
 
 use_logo=0
+screens=1
+scale=.43
 arg_test $@
 
 file1=$(mktemp --tmpdir i3lock-wrapper-XXXXXXXXXX.png)
 file2=$(mktemp --tmpdir i3lock-wrapper-XXXXXXXXXX.png)
 
-scrot -d0 "$file1"
-convert "$file1" -blur 0x3 "$file2"
-rm "$file1" # Remove for security
+screen_height=$(identify -format "(%H + .5)/1\n" "$file" | bc)
+screen_width=$(identify -format "(%W + .5)/1\n" "$file" | bc)
 
 if [ $use_logo -eq 1 ]; then
     superimpose_padlock
@@ -166,7 +194,14 @@ fi
 cmd=()
 for i in $@; do
     if [[ $i != '-l'  &&  $i != '--logo' && $i != '--' ]]; then
-        cmd+="$i "
+        case "$i" in
+            -s|--screens|-z|--size)
+                i=("${i[@]:2}")
+                ;;
+            *)
+                cmd+="$i "
+                ;;
+        esac
     fi
 done
 
