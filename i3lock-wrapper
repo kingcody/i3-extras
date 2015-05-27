@@ -166,15 +166,23 @@ HJv5+SUK5vDE45mXlq9gBvNjcUliUQnYh4bGFsC6RNXV340LAH9CX5BbBgAA
 EOF
 }
 
-superimpose_padlock() {
-    scale=.8
-    lockimage=$(mktemp --tmpdir i3lock-logo-XXXXXXXXXX)
-    img_pdf_gz | base64 -d | gunzip > "${lockimage}.pdf"
-    height=$(identify -format "($scale * %H + .5)/1\n" "$file2" | bc)     
-    width=$(identify -format "scale=4; t=%W/%H; scale=0; (t * $height + .5)/1\n" "${lockimage}.pdf" | bc)
-    convert -density 600 -background none -resize ${height}x${width} "${lockimage}.pdf" "${lockimage}.png"
-    convert -compose Exclusion -composite -gravity center "$file2" "${lockimage}.png" "$file2"
-    rm "${lockimage}" "${lockimage}.png" "${lockimage}.pdf"
+blur_image() {
+    convert "$file" -resize $(echo "($screen_width * .25)/1" | bc)x$(echo "($screen_height * .25)/1" | bc) -fill black -colorize 85% \
+      -blur 0x1 -resize "${screen_width}x${screen_height}" "$file"
+}
+
+blur_image_with_padlock() {
+    lockimage=$(mktemp --tmpdir i3lock-logo-XXXXXXXXXX.pdf)
+    img_pdf_gz | base64 -d | gunzip > "$lockimage"
+    height=$(identify -format "($scale * %H + .5)/1\n" "$file" | bc)
+    width=$(identify -format "scale=4; t=%W/%H; scale=0; (t * $height + .5)/1\n" "$lockimage" | bc)
+    convert "$file" -resize $(echo "($screen_width * .25)/1" | bc)x$(echo "($screen_height * .25)/1" | bc) -fill black -colorize 85% \
+      -blur 0x1 -resize "${screen_width}x${screen_height}" -write mpr:screen +delete \
+      -density 600 -background none -resize ${width}x${height} -gravity center \
+      -extent "$(($screen_width / $screens))x$height" "$lockimage" -write mpr:lock +delete \
+      `echo $(yes 'mpr:lock' | head -n"$screens")` +append -write mpr:lock +delete \
+      -compose Exclusion -composite -gravity center mpr:screen mpr:lock "$file"
+    rm "${lockimage}"
 }
 
 use_logo=0
@@ -190,7 +198,9 @@ screen_height=$(identify -format "(%H + .5)/1\n" "$file" | bc)
 screen_width=$(identify -format "(%W + .5)/1\n" "$file" | bc)
 
 if [ $use_logo -eq 1 ]; then
-    superimpose_padlock
+    blur_image_with_padlock
+else
+    blur_image
 fi
 
 cmd=()
