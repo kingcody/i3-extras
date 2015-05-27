@@ -77,13 +77,14 @@ arg_test () {
                shift;;
            -u|--no-unlock-indicator)
                shift;;
-           -p|--pointer) 
+           -p|--pointer)
+               __option__="$1"
                shift
                case "$1" in
                    win|default)
                        shift;;
                    *)
-                       echo "$script_name: invalid option \"$1\" for argument -p" >&2
+                       echo "$script_name: invalid option \"$1\" for argument $__option__" >&2
                        exit 1
                        ;;
                esac
